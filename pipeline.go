@@ -7,15 +7,18 @@ import (
 )
 
 func run(cfg config, urls []string) (int, int, error) {
+	// Validate runtime configuration before doing any work.
 	if err := validateConfig(cfg); err != nil {
 		return 0, 0, err
 	}
 
+	// Shared HTTP client for all workers.
 	client := &http.Client{Timeout: cfg.timeout}
+	// Unbuffered channels provide backpressure between producer, workers, and consumer.
 	jobs := make(chan string)
 	results := make(chan result)
 
-	// Start the worker pool and wire up the pipeline.
+	// Start a fixed-size worker pool; each worker reads jobs and emits results.
 	var wg sync.WaitGroup
 	for i := 0; i < cfg.workers; i++ {
 		wg.Add(1)
@@ -25,7 +28,7 @@ func run(cfg config, urls []string) (int, int, error) {
 		}(i + 1)
 	}
 
-	// Feed jobs, then close the channel so workers can exit.
+	// Single producer feeds jobs, then closes the channel to signal completion.
 	go func() {
 		for _, u := range urls {
 			jobs <- u
@@ -33,12 +36,13 @@ func run(cfg config, urls []string) (int, int, error) {
 		close(jobs)
 	}()
 
-	// Close results after all workers have drained the jobs.
+	// Closer goroutine waits for all workers to finish, then closes results.
 	go func() {
 		wg.Wait()
 		close(results)
 	}()
 
+	// Single consumer reads results until close and tallies outcomes.
 	var ok, fail int
 	for r := range results {
 		if r.err != nil {
