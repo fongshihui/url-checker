@@ -28,3 +28,13 @@ https://golang.org
 - `-timeout`: per-request timeout
 - `-retries`: retry count per URL
 - `-in`: input file path (optional)
+
+## Web UI
+
+Run the server:
+
+```bash
+go run . -serve -addr :8080
+```
+
+Then open `http://localhost:8080` for the frontend and `POST /api/check` for the JSON API.

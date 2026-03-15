@@ -1,13 +1,18 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"sync"
 	"time"
 )
+
+//go:embed static/*
+var staticFiles embed.FS
 
 type apiRequest struct {
 	URLs      []string `json:"urls"`
@@ -33,7 +38,21 @@ type apiResponse struct {
 }
 
 func runServer(cfg config) error {
+	staticFS, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		return err
+	}
+
 	mux := http.NewServeMux()
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		writeCORS(w)
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		http.ServeFileFS(w, r, staticFS, "index.html")
+	})
 	mux.HandleFunc("/api/check", func(w http.ResponseWriter, r *http.Request) {
 		writeCORS(w)
 		if r.Method == http.MethodOptions {
