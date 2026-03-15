@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 )
 
@@ -43,8 +44,13 @@ func run(cfg config, urls []string) (int, int, error) {
 	}()
 
 	// Single consumer reads results until close and tallies outcomes.
-	var ok, fail int
+	total := len(urls)
+	var ok, fail, done int
 	for r := range results {
+		done++
+		if total > 0 {
+			fmt.Fprintf(os.Stderr, "Progress: %d/%d\r", done, total)
+		}
 		if r.err != nil {
 			fail++
 			fmt.Printf("FAIL  %s  err=%v  attempts=%d  %s\n", r.url, r.err, r.attempts, r.duration)
@@ -52,6 +58,9 @@ func run(cfg config, urls []string) (int, int, error) {
 		}
 		ok++
 		fmt.Printf("OK    %s  status=%d  attempts=%d  %s\n", r.url, r.status, r.attempts, r.duration)
+	}
+	if total > 0 {
+		fmt.Fprintln(os.Stderr)
 	}
 
 	return ok, fail, nil

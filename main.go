@@ -9,6 +9,14 @@ import (
 func main() {
 	cfg, args := parseFlags()
 
+	if cfg.serve {
+		if err := runServer(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "server error: %v\n", err)
+			os.Exit(2)
+		}
+		return
+	}
+
 	urls, err := loadURLs(cfg.inFile, args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

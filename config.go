@@ -12,6 +12,8 @@ type config struct {
 	timeout time.Duration
 	retries int
 	inFile  string
+	serve   bool
+	addr    string
 }
 
 // parseFlags reads CLI flags and returns the config plus any positional args.
@@ -21,6 +23,8 @@ func parseFlags() (config, []string) {
 		timeout = flag.Duration("timeout", 5*time.Second, "request timeout")
 		retries = flag.Int("retries", 1, "retry count per URL")
 		inFile  = flag.String("in", "", "optional input file with one URL per line")
+		serve   = flag.Bool("serve", false, "run HTTP server instead of CLI")
+		addr    = flag.String("addr", ":8080", "HTTP listen address when -serve is set")
 	)
 	flag.Parse()
 
@@ -29,6 +33,8 @@ func parseFlags() (config, []string) {
 		timeout: *timeout,
 		retries: *retries,
 		inFile:  *inFile,
+		serve:   *serve,
+		addr:    *addr,
 	}, flag.Args()
 }
 
